@@ -1,34 +1,31 @@
 services:
   openclaw-gateway:
     build: .
+    user: "1000:1000"
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      TZ: ${OPENCLAW_TZ:-Europe/Paris}
+      TZ: Europe/Paris
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "false"
-      OPENCLAW_GATEWAY_BIND: ${OPENCLAW_GATEWAY_BIND:-loopback}
+      OPENCLAW_GATEWAY_BIND: loopback
+      OPENCLAW_SANDBOX_ENABLED: "false"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      # Ajoute d'autres clés LLM ici si besoin
-
     volumes:
       - openclaw_config:/home/node/.openclaw
       - openclaw_workspace:/home/node/.openclaw/workspace
-
     init: true
     restart: unless-stopped
-
     command:
       - node
       - dist/index.js
       - gateway
       - --bind
-      - ${OPENCLAW_GATEWAY_BIND:-loopback}
+      - loopback
       - --port
       - "18789"
-      - --allow-unconfigured   # Temporaire pour passer le missing config
-
+      - --allow-unconfigured        # ← À supprimer après le premier setup réussi
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -38,6 +35,7 @@ services:
 
   openclaw-cli:
     build: .
+    user: "1000:1000"
     network_mode: "service:openclaw-gateway"
     cap_drop:
       - NET_RAW
@@ -47,9 +45,12 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      TZ: ${OPENCLAW_TZ:-Europe/Paris}
+      TZ: Europe/Paris
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "false"
       BROWSER: echo
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - openclaw_config:/home/node/.openclaw
       - openclaw_workspace:/home/node/.openclaw/workspace
