@@ -1,55 +1,42 @@
 services:
   openclaw-gateway:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}   # ou ghcr.io/openclaw/openclaw:latest si tu build pas toi-même
-    build: .                                    # Si tu veux builder depuis ton fork (recommandé)
+    build: .
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      TZ: ${OPENCLAW_TZ:-UTC}
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-false}
-      # Tes clés LLM (à remplir dans Coolify ou .env)
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Ajoute d'autres providers si besoin
+      TZ: ${OPENCLAW_TZ:-Europe/Paris}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "false"
+      OPENCLAW_GATEWAY_BIND: ${OPENCLAW_GATEWAY_BIND:-loopback}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Ajoute d'autres clés LLM ici si besoin
+
     volumes:
       - openclaw_config:/home/node/.openclaw
       - openclaw_workspace:/home/node/.openclaw/workspace
-      # Sandbox Docker (optionnel mais puissant pour agents sécurisés)
-      # - /var/run/docker.sock:/var/run/docker.sock
-    # group_add:
-    #   - "${DOCKER_GID:-999}"
-    # Pas de "ports:" ici → Coolify gère l'exposition via Traefik
-    # expose: ["18789"]   # Optionnel, mais certains forks le mettent pour aider Coolify
+
     init: true
     restart: unless-stopped
+
     command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--bind",
-        "${OPENCLAW_GATEWAY_BIND:-loopback}",   # IMPORTANT : loopback par défaut sur Coolify
-        "--port",
-        "18789",
-        "--allow-unconfigured"
-        "--mode", "local"
-      ]
+      - node
+      - dist/index.js
+      - gateway
+      - --bind
+      - ${OPENCLAW_GATEWAY_BIND:-loopback}
+      - --port
+      - "18789"
+      - --allow-unconfigured   # Temporaire pour passer le missing config
+
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 40s
 
   openclaw-cli:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}
     build: .
     network_mode: "service:openclaw-gateway"
     cap_drop:
@@ -60,9 +47,8 @@ services:
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      TZ: ${OPENCLAW_TZ:-UTC}
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-false}
+      TZ: ${OPENCLAW_TZ:-Europe/Paris}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       BROWSER: echo
     volumes:
       - openclaw_config:/home/node/.openclaw
