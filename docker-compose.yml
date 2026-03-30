@@ -32,6 +32,8 @@ services:
         "${OPENCLAW_GATEWAY_BIND:-loopback}",   # IMPORTANT : loopback par défaut sur Coolify
         "--port",
         "18789",
+        "--allow-unconfigured"
+        "--mode", "local"
       ]
     healthcheck:
       test:
