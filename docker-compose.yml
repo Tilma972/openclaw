@@ -16,6 +16,13 @@ services:
     user: "1000:1000"
     expose:
       - "18789"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openclaw.rule=Host(`openclaw.dsolution-ia.fr`)"
+      - "traefik.http.routers.openclaw.entrypoints=https"
+      - "traefik.http.routers.openclaw.tls=true"
+      - "traefik.http.routers.openclaw.tls.certresolver=letsencrypt"
+      - "traefik.http.services.openclaw.loadbalancer.server.port=18789"  
     depends_on:
       openclaw-init:
         condition: service_completed_successfully
