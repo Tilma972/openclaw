@@ -1,12 +1,15 @@
 services:
   openclaw-init:
-    build: .
-    user: "0:0"           # root pour pouvoir chown
+    image: alpine:latest          # ← alpine, pas le build (plus léger et fiable)
+    user: "0:0"
     volumes:
       - openclaw_config:/home/node/.openclaw
       - openclaw_workspace:/home/node/.openclaw/workspace
-    entrypoint: ["sh", "-c", "chown -R 1000:1000 /home/node/.openclaw && chmod -R 755 /home/node/.openclaw"]
-    restart: "no"         # s'exécute une seule fois et s'arrête
+    command: >
+      sh -c "chown -R 1000:1000 /home/node/.openclaw &&
+             chmod -R 755 /home/node/.openclaw &&
+             echo 'Permissions OK'"
+    restart: "no"
 
   openclaw-gateway:
     build: .
@@ -22,7 +25,7 @@ services:
       TZ: Europe/Paris
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "false"
-      OPENCLAW_GATEWAY_BIND: loopback
+      OPENCLAW_GATEWAY_BIND: lan        # ← loopback → lan pour Traefik
       OPENCLAW_SANDBOX_ENABLED: "false"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -36,10 +39,10 @@ services:
       - dist/index.js
       - gateway
       - --bind
-      - loopback
+      - lan                             # ← loopback → lan
       - --port
       - "18789"
-      - --allow-unconfigured        # ← À supprimer après le premier setup réussi
+      - --allow-unconfigured
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
