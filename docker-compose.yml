@@ -1,6 +1,6 @@
 services:
   openclaw-init:
-    image: alpine:latest
+    image: ghcr.io/openclaw/openclaw:latest
     user: "0:0"
     volumes:
       - openclaw_config:/home/node/.openclaw
